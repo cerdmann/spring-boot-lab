@@ -320,6 +320,7 @@
     #!/usr/bin/env bash
 
     set -e
+    export TERM=${TERM:-dumb}
 
     echo "=============================================="
     echo "Beginning build of Spring Boot application"
@@ -427,4 +428,6 @@
     ![alt text](screenshots/start-pipeline.png "Click to start the pipeline")
 
   * The initial pull could take a while as it grabs the Docker image
-  * Once the build box starts blinking, click on it to check on progress
+  * Once the *build* box starts blinking, click on it to check on progress
+  * Examine the contents of the task steps, by clicking on *git-repo* and *build*
+  * **Congratulations**, you've completed your first pipeline task
