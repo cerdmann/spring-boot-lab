@@ -1,0 +1,16 @@
+resources:
+  - name: git-repo
+    type: git
+    source: 
+      uri: {{git-repo}}
+      branch: {{git-repo-branch}} 
+
+jobs:
+  - name: build
+    plan: 
+      - get: git-repo
+        trigger: true
+      - task: build
+        file: git-repo/ci/tasks/build.yml
+
+
