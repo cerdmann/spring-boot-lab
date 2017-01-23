@@ -78,6 +78,7 @@ Your local environment:
 1. Now we are going to add Spring Boot Actuator for production-grade monitoring and information:
   * Open up the *build.gradle* file found at the root of your *lab* folder
   * Under dependencies, add the Actuator dependency. When you are done, the section should look like this:
+
     ```
     dependencies {
       compile('org.springframework.boot:spring-boot-starter-web')
@@ -85,6 +86,7 @@ Your local environment:
       testCompile('org.springframework.boot:spring-boot-starter-test')
     }
     ```
+
 1. Restart your application at the command line using one of the *bootRun* commands in the above step
 1. Ensure that it compiles and starts and then refresh the http://localhost:8080/ to ensure it still works
 1. Visit some of the Actuator endpoints to see the available metrics and information (This is where the JSON Formatter plugin comes in handy)
