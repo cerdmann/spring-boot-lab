@@ -80,7 +80,7 @@ Your local environment:
 1. Depending on your operating system, perform one of the following to start the application:
   * Mac/Linux: ```./gradlew bootRun```
   * Windows: ```gradlew bootRun```
-1. The Spring Initializer sets the port to 8080. Therefore, visit: http://localhost:8080/ to view the output from your endpoint. You should see: ```Greetings from the Spring Boot Starter App!```
+1. The Spring Initializer sets the port to 8080. Therefore, visit: [localhost:8080](http://localhost:8080) to view the output from your endpoint. You should see: ```Greetings from the Spring Boot Starter App!```
 1. Now we are going to add Spring Boot Actuator for production-grade monitoring and information:
   * Open up the *build.gradle* file found at the root of your *lab* folder
   * Under dependencies, add the Actuator dependency. When you are done, the section should look like this:
@@ -94,12 +94,12 @@ Your local environment:
     ```
 
 1. Restart your application at the command line using one of the *bootRun* commands in the above step
-1. Ensure that it compiles and starts and then refresh the http://localhost:8080/ to ensure it still works
+1. Ensure that it compiles and starts and then refresh the [localhost:8080](http://localhost:8080/) page to ensure it still works
 1. Visit some of the Actuator endpoints to see the available metrics and information (This is where the JSON Formatter plugin comes in handy)
-  * http://localhost:8080/info
-  * http://localhost:8080/health
-  * http://localhost:8080/metrics
-  * http://localhost:8080/env
+  * [localhost:8080/info](http://localhost:8080/info)
+  * [localhost:8080/health](http://localhost:8080/health)
+  * [localhost:8080/metrics](http://localhost:8080/metrics)
+  * [localhost:8080/env](http://localhost:8080/env)
 
 ### Lab 2
 
