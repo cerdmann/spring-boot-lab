@@ -393,7 +393,7 @@
 
 1. Check in our files
   * Since Concourse will be pulling our tasks and scripts from the git-repo, we need to check everything in
-  * At the root of your *lab* application, execute a ```git status``` to ensure our concourse-config.yml is not in the files that need to be added. Move it to a higher directory if necessary.
+  * At the root of your *lab* application, execute a ```git status``` to ensure our *concourse-config.yml* is not in the files that will be added. Move it to a higher directory if necessary.
   * Again, in the root of your *lab* application, execute the following commands to push your work:
 
     ```
@@ -427,4 +427,4 @@
     ![alt text](screenshots/start-pipeline.png "Click to start the pipeline")
 
   * The initial pull could take a while as it grabs the Docker image
-  * Once the build box starts blinking, double click on it to check on progress
+  * Once the build box starts blinking, click on it to check on progress

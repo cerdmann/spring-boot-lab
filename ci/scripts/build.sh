@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+export TERM=${TERM:-dumb}
 
 echo "=============================================="
 echo "Beginning build of Spring Boot application"
