@@ -862,7 +862,7 @@
   git push origin master
   ```
 
-1. Push the new pipeline and try out the release
+1. Push the new pipeline and try out the push to Pivotal Cloud Foundry
   * At your command line, from the root of your *lab* application. Execute the following command:
 
   ```
@@ -870,3 +870,5 @@
   ```
 
   * Go to your browser and click on the *build* box. In the upper right hand corner, you will see a **+** sign which will trigger the build. Press it
+  * Go to the Pivotal Cloud Foundry Apps Manager API [PCF Apps Manager endpoint] in your browser. Observe the uptime of your app to see that it has recently been modified. If you are monitoring your app in the Apps Manager while Concourse is deploying it, you might see 2 applications. This is because the *cf* resource will perform a blue-green deploy of your app
+  * Try modifying the message your app displays in the *HelloController*. Push the change to Github, and watch the pipeline automatically pick up your change and deploy it.
