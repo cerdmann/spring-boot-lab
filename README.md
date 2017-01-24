@@ -872,3 +872,176 @@
   * Go to your browser and click on the *build* box. In the upper right hand corner, you will see a **+** sign which will trigger the build. Press it
   * Go to the Pivotal Cloud Foundry Apps Manager API [PCF Apps Manager endpoint] in your browser. Observe the uptime of your app to see that it has recently been modified. If you are monitoring your app in the Apps Manager while Concourse is deploying it, you might see 2 applications. This is because the *cf* resource will perform a blue-green deploy of your app
   * Try modifying the message your app displays in the *HelloController*. Push the change to Github, and watch the pipeline automatically pick up your change and deploy it.
+1. Next we are going to add the steps to deploy to both staging and prod
+  * These will not be triggered deploys, but will require you to click on the build in the pipeline to trigger them
+  * You could automate this step through slack, or with Pivotal Tracker, but for this workshop, we will rely on manually clicking to push to stage and prod
+  * We are also using the same manifests from dev for stage and prod. These could be customized for each environment. You would need to add a copy step for them to your ```build.sh```
+  * Modify your ```pipeline.yml``` to look like this:
+
+    ```
+    resources:
+      - name: git-repo
+        type: git
+        source:
+          uri: {{git-repo}}
+          branch: {{git-repo-branch}}
+
+      - name: resource-version
+        type: semver
+        source:
+          driver: git
+          uri: {{git-repo-ssh-address}}
+          branch: version
+          file: version
+          private_key: {{git-ssh-key}}
+          git_user: {{git-user-email}}
+          initial_version: 0.0.1
+
+      - name: gh-release
+        type: github-release
+        source:
+          repository: {{git-repo-name}}
+          user: {{git-user}}
+          access_token: {{git-access-token}}
+
+      - name: deploy-dev
+        type: cf
+        source:
+          api: {{cf-api}}
+          username: {{cf-username}}
+          password: {{cf-password}}
+          organization: {{cf-org}}
+          space: {{cf-dev-space}}
+          skip_cert_check: true
+
+      - name: deploy-stage
+        type: cf
+        source:
+          api: {{cf-api}}
+          username: {{cf-username}}
+          password: {{cf-password}}
+          organization: {{cf-org}}
+          space: {{cf-stage-space}}
+          skip_cert_check: true
+
+      - name: deploy-prod
+        type: cf
+        source:
+          api: {{cf-api}}
+          username: {{cf-username}}
+          password: {{cf-password}}
+          organization: {{cf-org}}
+          space: {{cf-prod-space}}
+          skip_cert_check: true
+
+    jobs:
+      - name: build
+        serial_groups: [resource-version]
+        plan:
+          - get: git-repo
+            trigger: true
+          - get: resource-version
+            params: {bump: patch}
+          - task: build
+            file: git-repo/ci/tasks/build.yml
+          - put: resource-version
+            params: {file: resource-version/version}
+          - put: gh-release
+            params:
+              name: artifact/release_name.txt
+              tag: resource-version/number
+              body: artifact/release_notes.md
+              commitish: artifact/release_commitish.txt
+              globs:
+              - artifact/lab*.jar
+              - artifact/concourse-dev-manifest.yml
+
+      - name: deploy-dev
+        serial_groups: [resource-version]
+        plan:
+          - aggregate:
+            - get: gh-release
+              trigger: true
+              passed: [build]
+          - put: deploy-dev
+            params:
+              manifest: gh-release/concourse-dev-manifest.yml
+              current_app_name: lab-application
+              path: gh-release
+
+      - name: deploy-stage
+        serial_groups: [resource-version]
+        plan:
+          - aggregate:
+            - get: gh-release
+              passed: [deploy-dev]
+          - put: deploy-stage
+            params:
+              manifest: gh-release/concourse-dev-manifest.yml
+              current_app_name: lab-application
+              path: gh-release
+
+      - name: deploy-prod
+        serial_groups: [resource-version]
+        plan:
+          - aggregate:
+            - get: gh-release
+              passed: [deploy-stage]
+          - put: deploy-prod
+            params:
+              manifest: gh-release/concourse-dev-manifest.yml
+              current_app_name: lab-application
+              path: gh-release
+    ```
+
+  * Update the credential file for the new placeholders. In your concourse-config add the following, replacing the brackets with your information:
+
+    ```
+    git-repo: [URI-OF-GITHUB-REPO]
+    git-repo-branch: master
+    git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
+    git-user-email: [PUT-GITHUB-EMAIL-HERE]
+    git-ssh-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      YOUR
+      MULTILINE
+      GITHUB
+      SSH
+      KEY
+      HERE
+      -----END RSA PRIVATE KEY-----
+    git-user: [GITHUB-USER-NAME]
+    git-repo-name: [GITHUB-REPO-NAME]
+    git-access-token: [CREATE-A-GITHUB-ACCESS-TOKEN-AND-ADD-HERE]
+    cf-api: [PCF-API endpoint]
+    cf-username: [PCF CI username]
+    cf-password: [PCF CI password]
+    cf-org: [CLOUD-FOUNDRY-ORG]
+    cf-dev-space: [CLOUD-FOUNDRY-DEV-SPACE-NAME]
+    cf-stage-space: [CLOUD-FOUNDRY-STAGE-SPACE-NAME]
+    cf-prod-space: [CLOUD-FOUNDRY-PROD-SPACE-NAME]
+    ```
+
+1. Push your new commits to Github
+  * Push your changes
+
+  ```
+  git add .
+  git commit -m "Added push to Pivotal Cloud Foundry stage and prod to the pipeline"
+  git push origin master
+  ```
+
+1. Push the new pipeline and try out the push to Pivotal Cloud Foundry
+  * At your command line, from the root of your *lab* application. Execute the following command:
+
+  ```
+  fly -t ci set-pipeline -p lab-application -c ./ci/pipeline.yml -l ../concourse-config.yml
+  ```
+
+  * Trigger your build manually through the web app, or by making a change to your code
+  * In the Concourse Web App, you will see a dotted line connecting *deply-dev* and *deploy-stage* and *deploy-prod*. This means that you must manually trigger these jobs
+  * Click on the build for *deploy-stage*. Once that is finished, click on the build for *deploy-prod*
+  * Go to the Pivotal Cloud Foundry Apps Manager API [PCF Apps Manager endpoint] in your browser. Observe that the app has been pushed to each space/environment. These could easily be different orgs or even completely different foundries. Try out the urls for each
+  * **Congratulations**, you now have a complete pipeline to continuously deliver your applications
+
+    ![alt text](screenshots/pipeline-complete.png "Pipeline complete")

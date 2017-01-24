@@ -33,6 +33,26 @@ resources:
       space: {{cf-dev-space}}
       skip_cert_check: true
 
+  - name: deploy-stage
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-stage-space}}
+      skip_cert_check: true
+
+  - name: deploy-prod
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-prod-space}}
+      skip_cert_check: true
+
 jobs:
   - name: build
     serial_groups: [resource-version]
@@ -63,6 +83,30 @@ jobs:
           trigger: true
           passed: [build]
       - put: deploy-dev
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 
+
+  - name: deploy-stage
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          passed: [deploy-dev]
+      - put: deploy-stage
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 
+
+  - name: deploy-prod
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          passed: [deploy-stage]
+      - put: deploy-prod
         params:
           manifest: gh-release/concourse-dev-manifest.yml
           current_app_name: lab-application 
