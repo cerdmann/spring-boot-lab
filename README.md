@@ -5,6 +5,7 @@
 * Spring Actuator (Lab 1)
 * Learn how to deploy an app to Pivotal Cloud Foundry (Lab 2)
 * Setup a continuous delivery pipeline to build your app (Lab 3)
+* Continuously delivery your app to Pivotal Cloud Foundry (Lab 4)
 
 ## Contents
 
@@ -13,6 +14,7 @@
   * [Lab 1](#lab-1)
   * [Lab 2](#lab-2)
   * [Lab 3](#lab-3)
+  * [Lab 4](#lab-4)
 
 ## Prerequisites
 
@@ -431,3 +433,35 @@
   * **Congratulations**, you've completed your first pipeline task
 
     ![alt text](screenshots/first-pipeline-successful.png "Pipeline success")
+
+### Lab 4
+
+#### Setup
+
+* Ensure you have a [Github](https://github.com) account
+* Know the *api* endpoint for the Pivotal Cloud Foundry you are targeting. It will typically look like this: ```https://api.system.pcf.pcfonazure.com```, and will be referenced in this lab as [PCF-API endpoint]
+* Know the Pivotal Cloud Foundry *Apps Manager* endpoint to view the status of your apps in your browser. It will typically look like this: ```https://apps.system.pcf.pcfonazure.com```, and will be referenced in this lab as [PCF Apps Manager endpoint]
+* Know the Concourse URI. It will be referenced in this lab as [Concourse URI]
+* Know your Concourse team name. It will be referenced in this lab as [Concourse team]
+* Know your Concourse username. It will be referenced in this lab as [Concourse username]
+* Know your Concourse users password. It will be referenced in this lab as [Concourse password]
+* Know your Pivotal Cloud Foundry CI username. It will be referenced in this lab as [PCF CI username]
+* Know your Pivotal Cloud Foundry CI users password. It will be referenced in this lab as [PCF CI password]
+
+#### Objectives
+
+* Learn how to continuously deploy an application to Pivotal Cloud Foundry
+
+#### Steps
+
+1. Add versioning through Concourse
+  * We will be using Github releases in this lab. To do that we need to update a version number for each build of the application for traceability. Eventually this should be retrofitted into the gradle build process for our app, but we will skip that for now
+  * We will be using the [semver resource](https://github.com/concourse/semver-resource) to bump our version numbers
+  * To use the git driver, we need to setup a special branch of our repository to hold the version number. We will use the steps outlined in this [Stark and Wayne](https://github.com/starkandwayne/concourse-tutorial/tree/master/20_versions_and_buildnumbers#setup-with-a-git-branch) tutorial.
+  * At your command line, at the root of your *lab* application, use the following commands to create an orphaned branch to hold the version information:
+
+    ```
+    
+    ```
+
+  * asdf
