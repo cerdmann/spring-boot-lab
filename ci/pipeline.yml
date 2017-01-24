@@ -23,8 +23,19 @@ resources:
       user: {{git-user}}
       access_token: {{git-access-token}}
 
+  - name: deploy-dev
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-dev-space}}
+      skip_cert_check: true
+
 jobs:
   - name: build
+    serial_groups: [resource-version]
     plan: 
       - get: git-repo
         trigger: true
@@ -44,3 +55,15 @@ jobs:
           - artifact/lab*.jar
           - artifact/manifest.yml
 
+  - name: deploy-dev
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          trigger: true
+          passed: [build]
+      - put: deploy-dev
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 

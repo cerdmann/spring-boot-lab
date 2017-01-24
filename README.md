@@ -66,8 +66,8 @@
     * **Artifact**: *lab*
     * **Search for dependencies**: Type *Web* and hit Enter
   * Click on **Generate Project**. This will generate and download a zip file containing the skeleton of this Spring Boot app.
-  * Unzip it into a local folder
-1. Start up your favorite IDE and import the *build.gradle* file found in the root of the lab folder
+  * Unzip it into a local directory
+1. Start up your favorite IDE and import the *build.gradle* file found in the root of the lab directory
 1. Under **Main** -> **java** -> **com.example**, create a new java class named *HelloController*
 1. Type or paste in the following code:
   ```java
@@ -85,13 +85,13 @@
     }
   }
   ```
-1. Open up a terminal window or command prompt and navigate to root of the folder you downloaded from Spring Initializer.
+1. Open up a terminal window or command prompt and navigate to root of the directory you downloaded from Spring Initializer.
 1. Depending on your operating system, perform one of the following to start the application:
   * Mac/Linux: ```./gradlew bootRun```
   * Windows: ```gradlew bootRun```
 1. The Spring Initializer sets the port to 8080. Therefore, visit: [localhost:8080](http://localhost:8080) to view the output from your endpoint. You should see: ```Greetings from the Spring Boot Starter App!```
 1. Now we are going to add Spring Boot Actuator for production-grade monitoring and information:
-  * Open up the *build.gradle* file found at the root of your *lab* folder
+  * Open up the *build.gradle* file found at the root of your *lab* directory
   * Under dependencies, add the Actuator dependency. When you are done, the section should look like this:
 
     ```
@@ -234,7 +234,7 @@
   * In the root of your *lab application*, execute the following command to initialize a git repo: ```git init```
   * We will now associate our local git repo with our newly create Github repo
     * Grab the https or ssh location from the **Clone or download** button on your Github repo page
-    * Execute the following command at the root of your *lab* folder:
+    * Execute the following command at the root of your *lab* directory:
 
       ```
       git remote add origin [https or ssh location from the last step]
@@ -481,7 +481,7 @@
       * Skip the *Adding your SSH key to the ssh-agent* part
     * Follow the [Adding a new SSH key to your Github account](https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/)
       * In the Title field, enter *Concourse versioning key* so you know the purpose of the key
-    * If necessary, move the keys out of the *lab* application folder. We do not want to check those into a repository. You should have two keys, a public (\*.pub) and a private key
+    * If necessary, move the keys out of the *lab* application directory. We do not want to check those into a repository. You should have two keys, a public (\*.pub) and a private key
   * Add a semver resource to your ```pipeline.yml```. Update your ```pipeline.yml``` to look like this:
 
     ```
@@ -522,7 +522,7 @@
     git-repo: [URI-OF-GITHUB-REPO]
     git-repo-branch: master
     git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
-    git-user-email: PUT-GITHUB-EMAIL-HERE
+    git-user-email: [PUT-GITHUB-EMAIL-HERE]
     git-ssh-key: |
       -----BEGIN RSA PRIVATE KEY-----
       YOUR
@@ -627,7 +627,7 @@
     git-repo: [URI-OF-GITHUB-REPO]
     git-repo-branch: master
     git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
-    git-user-email: PUT-GITHUB-EMAIL-HERE
+    git-user-email: [PUT-GITHUB-EMAIL-HERE]
     git-ssh-key: |
       -----BEGIN RSA PRIVATE KEY-----
       YOUR
@@ -697,3 +697,176 @@
   * Go to your repo on Github and click on on *release*
   * You should see a new release with the proper version, pushed to Github from your pipeline
   * Click the build box in Concourse a few times and see new releases appear
+1. We need to create a new manifest for the release for our dev process.
+  * When we pull the release artifacts back from Github, the JAR will be in the root of the directory. Our current manifest looks for the artifact in the ```buid/libs``` directory. We will create a new manifest called ```concourse-dev-manifest.yml``` and place it in the root of our *lab* directory.
+  * Add the following content to the new file:
+
+    ```
+    ---
+    applications:
+    - name: lab-application
+      random-route: true
+      memory: 512M
+      disk: 1G
+      instances: 2
+      path: ./lab-0.0.1-SNAPSHOT.jar
+    ```
+
+    A better solution will be to use a script to modify the manifest based on the name of the artifact. Right now we are keeping the name of the artifact consistent. As soon as we change the name of it, the manifests will break
+
+  * We will replace the ```manifest.yml``` we copied in the ```build.sh``` with the new file. Update your ```build.sh``` with the following:
+
+    ```
+    #!/usr/bin/env bash
+
+    set -e
+    export TERM=${TERM:-dumb}
+
+    echo "=============================================="
+    echo "Beginning build of Spring Boot application"
+    echo "$(java -version)"
+    echo "$(gradle -version)"
+    echo "=============================================="
+
+    cd git-repo
+
+    ./gradlew clean build
+
+    ARTIFACT=$(cd ./build/libs && ls lab*.jar)
+    COMMIT=$(git rev-parse HEAD)
+
+    echo $ARTIFACT > ../artifact/release_name.txt
+    echo $(git log --format=%B -n 1 $COMMIT) > ../artifact/release_notes.md
+    echo $COMMIT > ../artifact/release_commitish.txt
+
+    cp ./build/libs/$ARTIFACT ../artifact
+    cp ./concourse-dev-manifest.yml ../artifact
+
+    echo "----------------------------------------------"
+    echo "Build Complete"
+    ls -lah ../artifact
+    echo "----------------------------------------------"
+    ```
+
+1. Now we will update the pipeline and introduce the [cf](https://github.com/concourse/cf-resource) resource
+  * Add the resource and create a new job which will deploy to the development space
+  * We will be using information specified in the setup to this Lab for accessing Pivotal Cloud Foundry
+  * When we add the new deploy job, we will trigger it off of a successful build. We want this deploy to happen automatically once the build completes. Our future pushes to stage and prod will be triggered by a click
+  * We will also set both jobs up in a serial group so that they will not kick off independently
+  * Modify your ```pipeline.yml``` to look like this:
+
+    ```
+    resources:
+      - name: git-repo
+        type: git
+        source:
+          uri: {{git-repo}}
+          branch: {{git-repo-branch}}
+
+      - name: resource-version
+        type: semver
+        source:
+          driver: git
+          uri: {{git-repo-ssh-address}}
+          branch: version
+          file: version
+          private_key: {{git-ssh-key}}
+          git_user: {{git-user-email}}
+          initial_version: 0.0.1
+
+      - name: gh-release
+        type: github-release
+        source:
+          repository: {{git-repo-name}}
+          user: {{git-user}}
+          access_token: {{git-access-token}}
+
+      - name: deploy-dev
+        type: cf
+        source:
+          api: {{cf-api}}
+          username: {{cf-username}}
+          password: {{cf-password}}
+          organization: {{cf-org}}
+          space: {{cf-dev-space}}
+          skip_cert_check: true
+
+    jobs:
+      - name: build
+        serial_groups: [resource-version]
+        plan:
+          - get: git-repo
+            trigger: true
+          - get: resource-version
+            params: {bump: patch}
+          - task: build
+            file: git-repo/ci/tasks/build.yml
+          - put: resource-version
+            params: {file: resource-version/version}
+          - put: gh-release
+            params:
+              name: artifact/release_name.txt
+              tag: resource-version/number
+              body: artifact/release_notes.md
+              commitish: artifact/release_commitish.txt
+              globs:
+              - artifact/lab*.jar
+              - artifact/manifest.yml
+
+      - name: deploy-dev
+        serial_groups: [resource-version]
+        plan:
+          - aggregate:
+            - get: gh-release
+              trigger: true
+              passed: [build]
+          - put: deploy-dev
+            params:
+              manifest: gh-release/concourse-dev-manifest.yml
+              current_app_name: lab-application
+              path: gh-release
+    ```
+
+  * Update the credential file for the new placeholders. In your concourse-config add the following, replacing the brackets with your information:
+
+    ```
+    git-repo: [URI-OF-GITHUB-REPO]
+    git-repo-branch: master
+    git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
+    git-user-email: [PUT-GITHUB-EMAIL-HERE]
+    git-ssh-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      YOUR
+      MULTILINE
+      GITHUB
+      SSH
+      KEY
+      HERE
+      -----END RSA PRIVATE KEY-----
+    git-user: [GITHUB-USER-NAME]
+    git-repo-name: [GITHUB-REPO-NAME]
+    git-access-token: [CREATE-A-GITHUB-ACCESS-TOKEN-AND-ADD-HERE]
+    cf-api: [PCF-API endpoint]
+    cf-username: [PCF CI username]
+    cf-password: [PCF CI password]
+    cf-org: [CLOUD-FOUNDRY-ORG]
+    cf-dev-space: [CLOUD-FOUNDRY-DEV-SPACE-NAME]
+    ```
+
+1. Push your new commits to Github
+  * Push your changes
+
+  ```
+  git add .
+  git commit -m "Added push to Pivotal Cloud Foundry to the pipeline"
+  git push origin master
+  ```
+
+1. Push the new pipeline and try out the release
+  * At your command line, from the root of your *lab* application. Execute the following command:
+
+  ```
+  fly -t ci set-pipeline -p lab-application -c ./ci/pipeline.yml -l ../concourse-config.yml
+  ```
+
+  * Go to your browser and click on the *build* box. In the upper right hand corner, you will see a **+** sign which will trigger the build. Press it
