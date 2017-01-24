@@ -1,12 +1,10 @@
 # Developing Applications with Spring Boot and Spring Cloud
 
-*Modified from original content by [Andrew Ripka](https://github.com/aripka-pivotal)*
-
 ## High Level Objectives
 * Spring Boot project creation (Lab 1)
 * Spring Actuator (Lab 1)
 * Learn how to deploy an app to Pivotal Cloud Foundry (Lab 2)
-* Setup a continuous delivery pipeline to deliver your app (Lab 3)
+* Setup a continuous delivery pipeline to build your app (Lab 3)
 
 ## Contents
 
@@ -46,6 +44,8 @@
 ## Labs
 
 ### Lab 1
+
+*Modified from original content by [Andrew Ripka](https://github.com/aripka-pivotal)*
 
 #### Objectives
 
@@ -215,18 +215,14 @@
 #### Setup
 
 * Ensure you have a [Github](https://github.com) account
-* Know the *api* endpoint for the Pivotal Cloud Foundry you are targeting. It will typically look like this: ```https://api.system.pcf.pcfonazure.com```, and will be referenced in this lab as [PCF-API endpoint]
-* Know the Pivotal Cloud Foundry *Apps Manager* endpoint to view the status of your apps in your browser. It will typically look like this: ```https://apps.system.pcf.pcfonazure.com```, and will be referenced in this lab as [PCF Apps Manager endpoint]
 * Know the Concourse URI. It will be referenced in this lab as [Concourse URI]
 * Know your Concourse team name. It will be referenced in this lab as [Concourse team]
 * Know your Concourse username. It will be referenced in this lab as [Concourse username]
 * Know your Concourse users password. It will be referenced in this lab as [Concourse password]
-* Know your Pivotal Cloud Foundry CI username. It will be referenced in this lab as [PCF CI username]
-* Know your Pivotal Cloud Foundry CI users password. It will be referenced in this lab as [PCF CI password]
 
 #### Objectives
 
-* Learn how to continuously deploy an application to Pivotal Cloud Foundry
+* Learn how to continuously build an application with Concourse
 
 #### Steps
 
@@ -281,6 +277,8 @@
     ```
     fly -t ci login  -c http://23.96.231.205:8080 -n pcf_guru_1
     ```
+
+    When prompted, supply the [Concourse username] and [Concourse password]
 
     We are telling the *fly-cli* to log us in, and set a target environment label (-t) as *ci*. In future commands, we will target this particular login by starting our commands with ```fly -t ci ...```
 1. Create a [Concourse task](https://concourse.ci/running-tasks.html) for the build step
@@ -431,3 +429,5 @@
   * Once the *build* box starts blinking, click on it to check on progress
   * Examine the contents of the task steps, by clicking on *git-repo* and *build*
   * **Congratulations**, you've completed your first pipeline task
+
+    ![alt text](screenshots/first-pipeline-successful.png "Pipeline success")
