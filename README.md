@@ -811,7 +811,7 @@
               commitish: artifact/release_commitish.txt
               globs:
               - artifact/lab*.jar
-              - artifact/manifest.yml
+              - artifact/concourse-dev-manifest.yml
 
       - name: deploy-dev
         serial_groups: [resource-version]
