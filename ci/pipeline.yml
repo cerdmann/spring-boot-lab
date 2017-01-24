@@ -20,7 +20,7 @@ resources:
     type: github-release
     source:
       repository: {{git-repo-name}}
-      user: {{git-user-email}}
+      user: {{git-user}}
       access_token: {{git-access-token}}
 
 jobs:

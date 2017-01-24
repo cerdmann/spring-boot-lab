@@ -590,7 +590,7 @@
           type: github-release
           source:
             repository: {{git-repo-name}}
-            user: {{git-user-email}}
+            user: {{git-user}}
             access_token: {{git-access-token}}
 
       jobs:
@@ -637,6 +637,7 @@
       KEY
       HERE
       -----END RSA PRIVATE KEY-----
+    git-user: [GITHUB-USER-NAME]
     git-repo-name: [GITHUB-REPO-NAME]
     git-access-token: CREATE-A-GITHUB-ACCESS-TOKEN-AND-ADD-HERE
     ```
