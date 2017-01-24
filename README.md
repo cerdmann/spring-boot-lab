@@ -415,6 +415,7 @@
     ```
     fly -t ci set-pipeline -p lab-application -c ./ci/pipeline.yml -l ../concourse-config.yml
     ```
+
   * You will get prompted to *apply configuration*. Type *y*
 1. View pipeline in browser
   * In your browser, refresh the page we logged into previously. You should see the following:
@@ -455,13 +456,103 @@
 #### Steps
 
 1. Add versioning through Concourse
-  * We will be using Github releases in this lab. To do that we need to update a version number for each build of the application for traceability. Eventually this should be retrofitted into the gradle build process for our app, but we will skip that for now
+  * We will be using Github releases in this lab. To do, that we need to update a version number for each build of the application. Eventually this should be retrofitted into the gradle build process for our app, but we will skip that for now
   * We will be using the [semver resource](https://github.com/concourse/semver-resource) to bump our version numbers
   * To use the git driver, we need to setup a special branch of our repository to hold the version number. We will use the steps outlined in this [Stark and Wayne](https://github.com/starkandwayne/concourse-tutorial/tree/master/20_versions_and_buildnumbers#setup-with-a-git-branch) tutorial.
   * At your command line, at the root of your *lab* application, use the following commands to create an orphaned branch to hold the version information:
 
     ```
-    
+    git checkout --orphan version
+    git rm --cached -r .
+    rm -rf *
+    rm .gitignore
+    touch README.md
+    git add .
+    git commit -m "new versioning branch"
+    git push origin version
+    git checkout master
     ```
 
-  * asdf
+  * The semver resource will pull the latest version from our new branch, increment it, and then push the new number back. Each build of the app through the pipeline will result in a new release version saved to Github releases.
+  * In order to accomplish this, the semver resource needs a private key to access Github (for the pushes). Please generate an ssh key and save it to your Github account by following [these](https://help.github.com/articles/connecting-to-github-with-ssh/) steps
+    * Follow the [Generating a new SSH key...](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) link.
+      * Name the key *concourse* and save it in a directory higher than your *lab* application directory
+      * Make sure you hit *enter* (no passphrase) when asked to *Enter your passphrase*
+      * Skip the *Adding your SSH key to the ssh-agent* part
+    * Follow the [Adding a new SSH key to your Github account](https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/)
+      * In the Title field, enter *Concourse versioning key* so you know the purpose of the key
+    * If necessary, move the keys out of the *lab* application folder. We do not want to check those into a repository. You should have two keys, a public (\*.pub) and a private key
+  * Add a semver resource to your ```pipeline.yml```. Update your ```pipeline.yml``` to look like this:
+
+    ```
+    resources:
+      - name: git-repo
+        type: git
+        source:
+          uri: {{git-repo}}
+          branch: {{git-repo-branch}}
+
+      - name: resource-version
+        type: semver
+        source:
+          driver: git
+          uri: {{git-repo-ssh-address}}
+          branch: version
+          file: version
+          private_key: {{git-ssh-key}}
+          git_user: {{git-user-email}}
+          initial_version: 0.0.1
+
+    jobs:
+      - name: build
+        plan:
+          - get: git-repo
+            trigger: true
+          - get: resource-version
+            params: {bump: patch}
+          - task: build
+            file: git-repo/ci/tasks/build.yml
+          - put: resource-version
+            params: {file: resource-version/version}
+    ```
+
+  * We also need to update our credential file for the new placeholders. In your concourse-config add the following, replacing the brackets with your information:
+
+    ```
+    git-repo: [URI-OF-GITHUB-REPO]
+    git-repo-branch: master
+    git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
+    git-user-email: PUT-GITHUB-EMAIL-HERE
+    git-ssh-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      YOUR
+      MULTILINE
+      GITHUB
+      SSH
+      KEY
+      HERE
+      -----END RSA PRIVATE KEY-----
+    ```
+
+    Make sure you copy your private key and indent each line 2 spaces. The SSH address can be found on the main Github page for your repo under *Clone or Download*
+1. Push the new pipeline and try out the versioning
+  * At your command line, from the root of your *lab* application. Execute the following command:
+
+  ```
+  fly -t ci set-pipeline -p lab-application -c ./ci/pipeline.yml -l ../concourse-config.yml
+  ```
+
+  * Go to your browser and click on the *build* box. In the upper right hand corner, you will see a **+** sign which will trigger the build. Press it
+  * Go to your repo on Github and select the version branch
+  * You should see a new file called *version* with 0.0.2 in it
+  * Click the build box in Concourse a few times and see the version increment
+1. Push your new commits to Github
+  * Perform a ```git status```. Make sure your public and private keys have not made it into *lab* directory
+  * Push your changes
+
+  ```
+  git add .
+  git commit -m "Added semver to the pipeline"
+  git push origin master
+  ```
+  

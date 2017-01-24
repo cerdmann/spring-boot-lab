@@ -5,12 +5,27 @@ resources:
       uri: {{git-repo}}
       branch: {{git-repo-branch}} 
 
+  - name: resource-version
+    type: semver
+    source:
+      driver: git
+      uri: {{git-repo-ssh-address}} 
+      branch: version 
+      file: version
+      private_key: {{git-ssh-key}}
+      git_user: {{git-user-email}} 
+      initial_version: 0.0.1
+
 jobs:
   - name: build
     plan: 
       - get: git-repo
         trigger: true
+      - get: resource-version
+        params: {bump: patch}
       - task: build
         file: git-repo/ci/tasks/build.yml
+      - put: resource-version
+        params: {file: resource-version/version}
 
 
