@@ -555,4 +555,124 @@
   git commit -m "Added semver to the pipeline"
   git push origin master
   ```
-  
+
+1. Push artifacts to Github releases
+  * To push our artifacts to Github releases, we will use the [github-release](https://github.com/concourse/github-release-resource) resource
+  * At the end of this step, we will have a versioned resource that we can push to Pivotal Cloud Foundry
+  * This resource uses a Github API access key. Before we proceed we need to create one following [these](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) steps
+    * Name your token *Concourse release token*
+    * Only grant the token *repo* scope
+    * Copy the token to the clipboard and paste it locally outside of the *lab* directory. Once you leave the page, you will not be able to see the token again. If you lose the token, please delete the old one and create a new one
+  * Modify your ```pipeline.yml``` file to include the new resource and reference it from the *build* job
+    * The *put* task of the job will create the release for you from various files in your *artifact* directory. We will modify the ```build.sh``` after this to ensure those files are created
+    * Your ```pipeline.yml``` should look like this:
+
+      ```
+      resources:
+        - name: git-repo
+          type: git
+          source:
+            uri: {{git-repo}}
+            branch: {{git-repo-branch}}
+
+        - name: resource-version
+          type: semver
+          source:
+            driver: git
+            uri: {{git-repo-ssh-address}}
+            branch: version
+            file: version
+            private_key: {{git-ssh-key}}
+            git_user: {{git-user-email}}
+            initial_version: 0.0.1
+
+        - name: gh-release
+          type: github-release
+          source:
+            repository: {{git-repo-name}}
+            user: {{git-user-email}}
+            access_token: {{git-access-token}}
+
+      jobs:
+        - name: build
+          plan:
+            - get: git-repo
+              trigger: true
+            - get: resource-version
+              params: {bump: patch}
+            - task: build
+              file: git-repo/ci/tasks/build.yml
+            - put: resource-version
+              params: {file: resource-version/version}
+            - put: gh-release
+              params:
+                name: artifact/release_name.txt
+                tag: resource-version/number
+                body: artifact/release_notes.md
+                commitish: artifact/release_commitish.txt
+                globs:
+                - artifact/lab*.jar
+                - artifact/manifest.yml
+      ```
+
+    * We need to create some files for the *params* portion of the release push
+      * ```release_name.txt``` - The release name
+      * ```resource-version/number``` - This will pull in the bumped version number from the semver resource
+      * ```release_notes.md``` - We can pass the commit notes to the release and they can act as our release notes
+      * ```artifact/release_commitish.txt``` - The commit hash to associate with the release
+      * *globs* - The files to push to Github
+  * We also need to update our credential file for the new placeholders. In your concourse-config add the following, replacing the brackets with your information:
+
+    ```
+    git-repo: [URI-OF-GITHUB-REPO]
+    git-repo-branch: master
+    git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
+    git-user-email: PUT-GITHUB-EMAIL-HERE
+    git-ssh-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      YOUR
+      MULTILINE
+      GITHUB
+      SSH
+      KEY
+      HERE
+      -----END RSA PRIVATE KEY-----
+    git-repo-name: [GITHUB-REPO-NAME]
+    git-access-token: CREATE-A-GITHUB-ACCESS-TOKEN-AND-ADD-HERE
+    ```
+
+  * We need to modify our ```build.sh``` to create the files mentioned above. Modify your ```build.sh``` to look like this:
+
+    ```
+    #!/usr/bin/env bash
+
+    set -e
+    export TERM=${TERM:-dumb}
+
+    echo "=============================================="
+    echo "Beginning build of Spring Boot application"
+    echo "$(java -version)"
+    echo "$(gradle -version)"
+    echo "=============================================="
+
+    cd git-repo
+
+    ./gradlew clean build
+
+    ARTIFACT=$(cd ./build/libs && ls lab*.jar)
+    COMMIT=$(git rev-parse HEAD)
+
+    echo $ARTIFACT > ../artifact/release_name.txt
+    echo $(git log --format=%B -n 1 $COMMIT) > ../artifact/release_notes.md
+    echo $COMMIT > ../artifact/release_commitish.txt
+
+    cp ./build/libs/$ARTIFACT ../artifact
+    cp ./manifest.yml ../artifact
+
+    echo "----------------------------------------------"
+    echo "Build Complete"
+    ls -lah ../artifact
+    echo "----------------------------------------------"
+    ```
+
+  * Push the new file

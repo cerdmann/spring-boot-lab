@@ -16,6 +16,13 @@ resources:
       git_user: {{git-user-email}} 
       initial_version: 0.0.1
 
+  - name: gh-release
+    type: github-release
+    source:
+      repository: {{git-repo-name}}
+      user: {{git-user-email}}
+      access_token: {{git-access-token}}
+
 jobs:
   - name: build
     plan: 
@@ -27,5 +34,13 @@ jobs:
         file: git-repo/ci/tasks/build.yml
       - put: resource-version
         params: {file: resource-version/version}
-
+      - put: gh-release 
+        params:
+          name: artifact/release_name.txt
+          tag: resource-version/number 
+          body: artifact/release_notes.md
+          commitish: artifact/release_commitish.txt
+          globs:
+          - artifact/lab*.jar
+          - artifact/manifest.yml
 
