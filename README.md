@@ -676,4 +676,24 @@
     echo "----------------------------------------------"
     ```
 
-  * Push the new file
+1. Push your new commits to Github
+  * Perform a ```git status```. Make sure your api key did not make it into the *lab* directory
+  * Push your changes
+
+  ```
+  git add .
+  git commit -m "Added git-release to the pipeline"
+  git push origin master
+  ```
+
+1. Push the new pipeline and try out the release
+  * At your command line, from the root of your *lab* application. Execute the following command:
+
+  ```
+  fly -t ci set-pipeline -p lab-application -c ./ci/pipeline.yml -l ../concourse-config.yml
+  ```
+
+  * Go to your browser and click on the *build* box. In the upper right hand corner, you will see a **+** sign which will trigger the build. Press it
+  * Go to your repo on Github and click on on *release*
+  * You should see a new release with the proper version, pushed to Github from your pipeline
+  * Click the build box in Concourse a few times and see new releases appear
