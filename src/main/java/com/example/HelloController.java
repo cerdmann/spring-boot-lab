@@ -8,7 +8,7 @@ public class HelloController {
 
     @RequestMapping("/")
     public String index() {
-        return "Greetings from the Spring Boot Starter App!";
+        return "Greetings from the Spring Boot Starter App! I'm now being auto deployed with Concourse";
     }
 
 }

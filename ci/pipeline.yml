@@ -5,12 +5,109 @@ resources:
       uri: {{git-repo}}
       branch: {{git-repo-branch}} 
 
+  - name: resource-version
+    type: semver
+    source:
+      driver: git
+      uri: {{git-repo-ssh-address}} 
+      branch: version 
+      file: version
+      private_key: {{git-ssh-key}}
+      git_user: {{git-user-email}} 
+      initial_version: 0.0.1
+
+  - name: gh-release
+    type: github-release
+    source:
+      repository: {{git-repo-name}}
+      user: {{git-user}}
+      access_token: {{git-access-token}}
+
+  - name: deploy-dev
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-dev-space}}
+      skip_cert_check: true
+
+  - name: deploy-stage
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-stage-space}}
+      skip_cert_check: true
+
+  - name: deploy-prod
+    type: cf
+    source:
+      api: {{cf-api}}
+      username: {{cf-username}}
+      password: {{cf-password}}
+      organization: {{cf-org}}
+      space: {{cf-prod-space}}
+      skip_cert_check: true
+
 jobs:
   - name: build
+    serial_groups: [resource-version]
     plan: 
       - get: git-repo
         trigger: true
+      - get: resource-version
+        params: {bump: patch}
       - task: build
         file: git-repo/ci/tasks/build.yml
+      - put: resource-version
+        params: {file: resource-version/version}
+      - put: gh-release 
+        params:
+          name: artifact/release_name.txt
+          tag: resource-version/number 
+          body: artifact/release_notes.md
+          commitish: artifact/release_commitish.txt
+          globs:
+          - artifact/lab*.jar
+          - artifact/concourse-dev-manifest.yml
 
+  - name: deploy-dev
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          trigger: true
+          passed: [build]
+      - put: deploy-dev
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 
 
+  - name: deploy-stage
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          passed: [deploy-dev]
+      - put: deploy-stage
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 
+
+  - name: deploy-prod
+    serial_groups: [resource-version]
+    plan:
+      - aggregate:
+        - get: gh-release
+          passed: [deploy-stage]
+      - put: deploy-prod
+        params:
+          manifest: gh-release/concourse-dev-manifest.yml
+          current_app_name: lab-application 
+          path: gh-release 

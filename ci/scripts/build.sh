@@ -14,9 +14,14 @@ cd git-repo
 ./gradlew clean build
 
 ARTIFACT=$(cd ./build/libs && ls lab*.jar) 
+COMMIT=$(git rev-parse HEAD)
+
+echo $ARTIFACT > ../artifact/release_name.txt
+echo $(git log --format=%B -n 1 $COMMIT) > ../artifact/release_notes.md
+echo $COMMIT > ../artifact/release_commitish.txt
 
 cp ./build/libs/$ARTIFACT ../artifact
-cp ./manifest.yml ../artifact
+cp ./concourse-dev-manifest.yml ../artifact
 
 echo "----------------------------------------------"
 echo "Build Complete"

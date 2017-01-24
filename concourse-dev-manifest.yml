@@ -1,0 +1,8 @@
+---
+applications:
+- name: lab-application 
+  random-route: true
+  memory: 512M
+  disk: 1G
+  instances: 2
+  path: ./lab-0.0.1-SNAPSHOT.jar
