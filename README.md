@@ -157,7 +157,8 @@
     * Members
 1. Jump back over to the terminal and push your app to Pivotal Cloud Foundry
     * In your terminal navigate to the root of your *lab* application that you setup in [Lab 1](#lab-1)
-    * Since we previously ran the application with ```gradlew bootRun```, there will be a fat JAR file (a single artifact with bundled dependencies) in the ```./build/libs``` directory.
+    * Package your application with ```./gradlew clean build```
+    * There will be a fat JAR file (a single artifact with bundled dependencies) in the ```./build/libs``` directory.
     * Execute the push:
 
       ```
