@@ -67,7 +67,41 @@
     * **Search for dependencies**: Type *Web* and hit Enter
   * Click on **Generate Project**. This will generate and download a zip file containing the skeleton of this Spring Boot app.
   * Unzip it into a local directory
-1. Start up your favorite IDE and import the *build.gradle* file found in the root of the lab directory
+1. Start up your favorite IDE and import the project
+1. Edit the *build.gradle* file found in the root of the lab directory to replace this code:
+
+  ```
+  .
+  .
+  .
+  apply plugin: 'org.springframework.boot'
+  
+  version = '0.0.1-SNAPSHOT'
+  sourceCompatibility = 1.8
+  .
+  .
+  .
+  ```
+  
+  with this
+  
+  ```
+  .
+  .
+  .
+  apply plugin: 'org.springframework.boot'
+  
+  jar {
+    baseName = 'lab'
+    version = '0.0.1-SNAPSHOT'
+  }
+  
+  sourceCompatibility = 1.8
+  .
+  .
+  .
+  ```
+  
 1. Under **Main** -> **java** -> **com.example**, create a new java class named *HelloController*
 1. Type or paste in the following code:
   ```java
@@ -447,6 +481,17 @@
 
     ```
     git add .
+    ```
+    
+    On Windows, we need to ensure that the executable bit is flipped on a few of our files:
+    ```
+    git update-index --chmod=+x ci/scripts/build.sh
+    git update-index --chmod=+x gradlew
+    ```
+    
+    On either operating system, complete the following steps:
+    
+    ```
     git commit -m "Added build step to concourse pipeline."
     git push origin master
     ```
