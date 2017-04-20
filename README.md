@@ -559,6 +559,8 @@
     git rm --cached -r .
     rm -rf *
     rm .gitignore
+    rm -rf .gradle
+    rm .gitattributes
     touch README.md
     git add .
     git commit -m "new versioning branch"
