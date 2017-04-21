@@ -108,15 +108,22 @@
   ```java
   package com.example;
 
+  package com.example;
+  
   import org.springframework.web.bind.annotation.RestController;
   import org.springframework.web.bind.annotation.RequestMapping;
+  import org.springframework.web.client.RestTemplate;
+  import org.springframework.http.ResponseEntity;
 
   @RestController
   public class HelloController {
-
+  
     @RequestMapping("/")
     public String index() {
-      return "Greetings from the Spring Boot Starter App!";
+      RestTemplate restTemplate = new RestTemplate();
+      String url = "http://api.icndb.com/jokes/random?exclude=[explicit]";
+  
+      return restTemplate.getForObject(url, String.class);
     }
   }
   ```
@@ -124,7 +131,7 @@
 1. Depending on your operating system, perform one of the following to start the application:
   * Mac/Linux: ```./gradlew bootRun```
   * Windows: ```gradlew bootRun```
-1. The Spring Initializer sets the port to 8080. Therefore, visit: [localhost:8080](http://localhost:8080) to view the output from your endpoint. You should see: ```Greetings from the Spring Boot Starter App!```
+1. The Spring Initializer sets the port to 8080. Therefore, visit: [localhost:8080](http://localhost:8080) to view the output from your endpoint. You should see a [Chuck Norris Db](http://www.icndb.com/) joke.
 1. Now we are going to add Spring Boot Actuator for production-grade monitoring and information:
   * Open up the *build.gradle* file found at the root of your *lab* directory
   * Under dependencies, add the Actuator dependency. When you are done, the section should look like this:
