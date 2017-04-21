@@ -9,7 +9,8 @@ echo "=============================================="
 
 cd git-repo
 
-echo "Test goes here"
+RESPONSE_CODE=$(curl --write-out %{http_code} --silent --output /dev/null https://lab-application-hyperbarbarous-paperiness.app.52.176.42.10.cf.pcfazure.com/)
+echo $RESPONSE_CODE
 
 echo "----------------------------------------------"
 echo "Test Complete"
