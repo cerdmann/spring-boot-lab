@@ -1,0 +1,19 @@
+resources:
+  - name: git-repo
+    type: git
+    source:
+      uri: {{git-repo}}
+      branch: {{git-repo-branch}}
+
+  - name: 1m
+    type: time
+    source: {interval: 1m}
+
+jobs:
+  - name: test-every-1m
+    plan:
+      - get: 1m
+        trigger: true
+      - get: git-repo
+      - task: test-api
+        file: git-repo/ci/tasks/test-api.yml
