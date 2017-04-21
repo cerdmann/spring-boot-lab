@@ -7,7 +7,7 @@ echo "=============================================="
 echo "Beginning Test of API"
 echo "=============================================="
 
-RESPONSE_CODE=$(curl --write-out %{http_code} -k --silent --output /dev/null https://lab-application-hyperbarbarous-paperiness.app.52.176.42.10.cf.pcfazure.com/)
+RESPONSE_CODE=$(curl --write-out %{http_code} -k --silent --output /dev/null https://lab-application-preachy-vortices.app.52.176.42.10.cf.pcfazure.com/)
 echo "Response Code: "$RESPONSE_CODE
 
 if [ "$RESPONSE_CODE" -ne "200" ]; then
