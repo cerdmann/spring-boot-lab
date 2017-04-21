@@ -107,8 +107,6 @@
 1. Type or paste in the following code:
   ```java
   package com.example;
-
-  package com.example;
   
   import org.springframework.web.bind.annotation.RestController;
   import org.springframework.web.bind.annotation.RequestMapping;
