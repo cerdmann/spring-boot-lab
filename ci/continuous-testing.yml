@@ -1,3 +1,10 @@
+resource_types:
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+      tag: latest
+
 resources:
   - name: git-repo
     type: git
@@ -9,6 +16,11 @@ resources:
     type: time
     source: {interval: 1m}
 
+  - name: slack-devs
+    type: slack-notification
+    source:
+      url: {{slack-webhook}}
+
 jobs:
   - name: test-every-1m
     plan:
@@ -17,3 +29,11 @@ jobs:
       - get: git-repo
       - task: test-api
         file: git-repo/ci/tasks/test-api.yml
+        on_failure:
+          put: slack-devs
+          params:
+            text: <!here> continuous testing job failed
+            channel: "#testing"
+            username: concourse
+            icon_url: https://avatars1.githubusercontent.com/u/7809479?v=3&s=200
+            task: slack-alert
