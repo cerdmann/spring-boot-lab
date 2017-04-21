@@ -67,7 +67,41 @@
     * **Search for dependencies**: Type *Web* and hit Enter
   * Click on **Generate Project**. This will generate and download a zip file containing the skeleton of this Spring Boot app.
   * Unzip it into a local directory
-1. Start up your favorite IDE and import the *build.gradle* file found in the root of the lab directory
+1. Start up your favorite IDE and import the project
+1. Edit the *build.gradle* file found in the root of the lab directory to replace this code:
+
+  ```
+  .
+  .
+  .
+  apply plugin: 'org.springframework.boot'
+
+  version = '0.0.1-SNAPSHOT'
+  sourceCompatibility = 1.8
+  .
+  .
+  .
+  ```
+
+  with this
+
+  ```
+  .
+  .
+  .
+  apply plugin: 'org.springframework.boot'
+
+  jar {
+    baseName = 'lab'
+    version = '0.0.1-SNAPSHOT'
+  }
+
+  sourceCompatibility = 1.8
+  .
+  .
+  .
+  ```
+
 1. Under **Main** -> **java** -> **com.example**, create a new java class named *HelloController*
 1. Type or paste in the following code:
   ```java
@@ -157,7 +191,8 @@
     * Members
 1. Jump back over to the terminal and push your app to Pivotal Cloud Foundry
     * In your terminal navigate to the root of your *lab* application that you setup in [Lab 1](#lab-1)
-    * Since we previously ran the application with ```gradlew bootRun```, there will be a fat JAR file (a single artifact with bundled dependencies) in the ```./build/libs``` directory.
+    * Package your application with ```./gradlew clean build```
+    * There will be a fat JAR file (a single artifact with bundled dependencies) in the ```./build/libs``` directory.
     * Execute the push:
 
       ```
@@ -231,6 +266,53 @@
 1. Push our application to Github
   * We need a common location from which to pull our code. Concourse can work with any git repository, but for this workshop, we will be using Github
   * Login to your Github account and create a new repository called ```lab-application```. Initialize it with a README.md and the appropriate license. Do not add a *.gitignore* as the Spring Initializer already created one for us
+  * We need to ensure line endings are handled appropriately whether you are using windows, linux, or osx
+    * At the root of your *Lab* directory, create a new file called ```.gitattributes```
+    * Add the following contents to the file:
+
+      ```
+      # Handle line endings automatically for files detected as text
+      # and leave all files detected as binary untouched.
+      * text=auto
+
+      #
+      # The above will handle all files NOT found below
+      #
+      # These files are text and should be normalized (Convert crlf => lf)
+      *.css           text
+      *.df            text
+      *.htm           text
+      *.html          text
+      *.java          text
+      *.js            text
+      *.json          text
+      *.jsp           text
+      *.jspf          text
+      *.jspx          text
+      *.properties    text
+      *.sh            text
+      *.tld           text
+      *.txt           text
+      *.tag           text
+      *.tagx          text
+      *.xml           text
+      *.yml           text
+
+      # These files are binary and should be left untouched
+      # (binary is a macro for -text -diff)
+      *.class         binary
+      *.dll           binary
+      *.ear           binary
+      *.gif           binary
+      *.ico           binary
+      *.jar           binary
+      *.jpg           binary
+      *.jpeg          binary
+      *.png           binary
+      *.so            binary
+      *.war           binary
+      ```
+
   * In the root of your *lab application*, execute the following command to initialize a git repo: ```git init```
   * We will now associate our local git repo with our newly create Github repo
     * Grab the https or ssh location from the **Clone or download** button on your Github repo page
@@ -399,6 +481,17 @@
 
     ```
     git add .
+    ```
+
+    On Windows, we need to ensure that the executable bit is flipped on a few of our files:
+    ```
+    git update-index --chmod=+x ci/scripts/build.sh
+    git update-index --chmod=+x gradlew
+    ```
+
+    On either operating system, complete the following steps:
+
+    ```
     git commit -m "Added build step to concourse pipeline."
     git push origin master
     ```
@@ -466,6 +559,8 @@
     git rm --cached -r .
     rm -rf *
     rm .gitignore
+    rm -rf .gradle
+    rm .gitattributes
     touch README.md
     git add .
     git commit -m "new versioning branch"
