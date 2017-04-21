@@ -15,6 +15,7 @@
   * [Lab 2](#lab-2)
   * [Lab 3](#lab-3)
   * [Lab 4](#lab-4)
+  * [Lab 5](#lab-5)
 
 ## Prerequisites
 
@@ -75,33 +76,33 @@
   .
   .
   apply plugin: 'org.springframework.boot'
-  
+
   version = '0.0.1-SNAPSHOT'
   sourceCompatibility = 1.8
   .
   .
   .
   ```
-  
+
   with this
-  
+
   ```
   .
   .
   .
   apply plugin: 'org.springframework.boot'
-  
+
   jar {
     baseName = 'lab'
     version = '0.0.1-SNAPSHOT'
   }
-  
+
   sourceCompatibility = 1.8
   .
   .
   .
   ```
-  
+
 1. Under **Main** -> **java** -> **com.example**, create a new java class named *HelloController*
 1. Type or paste in the following code:
   ```java
@@ -280,7 +281,7 @@
       #
       # These files are text and should be normalized (Convert crlf => lf)
       *.css           text
-      *.df            text 
+      *.df            text
       *.htm           text
       *.html          text
       *.java          text
@@ -482,15 +483,15 @@
     ```
     git add .
     ```
-    
+
     On Windows, we need to ensure that the executable bit is flipped on a few of our files:
     ```
     git update-index --chmod=+x ci/scripts/build.sh
     git update-index --chmod=+x gradlew
     ```
-    
+
     On either operating system, complete the following steps:
-    
+
     ```
     git commit -m "Added build step to concourse pipeline."
     git push origin master
@@ -1140,3 +1141,213 @@
   * **Congratulations**, you now have a complete pipeline to continuously deliver your applications
 
     ![alt text](screenshots/pipeline-complete.png "Pipeline complete")
+
+### Lab 5
+
+#### Setup
+
+* Ensure you have a [Github](https://github.com) account
+* Know the Concourse URI. It will be referenced in this lab as [Concourse URI]
+* Know your Concourse team name. It will be referenced in this lab as [Concourse team]
+* Know your Concourse username. It will be referenced in this lab as [Concourse username]
+* Know your Concourse users password. It will be referenced in this lab as [Concourse password]
+
+#### Objectives
+
+* Learn how to write a continuous test pipeline with error slack notifications
+
+#### Steps
+
+1. Setup a [Slack](https://slack.com/) team.
+  * We will be using Slack as a means to notify us of errors in our continuous testing pipeline
+  * Enter your email address at https://slack.com and follow the verification steps to complete your setup
+    * When prompted, select *Create a new team*
+    * Check your email and enter a verification code
+    * Enter your personal information and choose a password
+    * Under *What will your team use Slack for*, select *Shared interest group* and select a size
+    * Enter *Workshop* or another group name and Click *Create Team* once you approve of the urls
+    * Click *I Agree*
+    * Skip sending invitations
+    * Skip the tutorials, and add a new channel called *testing*
+1. Now that Slack is all setup, we can add a new pipeline that executes our tests. We want to run our tests continuously (or at least every minute) and do nothing if successful. However, if our test fails, we will use our Slack *testing* channel to receive notifications of the error.
+
+1. Create a [Concourse task](https://concourse.ci/running-tasks.html) for the testing step
+  * Using your IDE or a command line editor, create a new file named ```test-api.yml``` in your ```lab/ci/tasks``` directory.
+  * As we will be calling our 'API', we want this task to execute in a container that has the Curl command. We can define our *image_resource* with this [Docker image](https://hub.docker.com/r/tutum/curl//)
+  * To accomplish the above criteria, use your IDE or a command line editor to add the following to your ```lab/ci/tasks/test-api.yml``` file
+
+    ```
+    ---
+    platform: linux
+
+    image_resource:
+      type: docker-image
+      source:
+        repository: tutum/curl
+        tag: "latest"
+
+    inputs:
+      - name: git-repo
+
+    run:
+      path: git-repo/ci/scripts/test-api.sh
+    ```
+
+1. Create a test script for your application
+  * Using your IDE or a command line editor, create a new file named ```test-api.sh``` in your ```lab/ci/scripts``` directory. This script will be executed in a linux container; therefore, we do not provide an equivalent *.bat* file.
+  * Enter the following text into the ```build.sh``` file:
+
+    ```
+    #!/usr/bin/env bash
+
+    set -e
+    export TERM=${TERM:-dumb}
+
+    echo "=============================================="
+    echo "Beginning Test of API"
+    echo "=============================================="
+
+    RESPONSE_CODE=$(curl --write-out %{http_code} -k --silent --output /dev/null https://lab-application-hyperbarbarous-paperiness.app.52.176.42.10.cf.pcfazure.com/)
+    echo "Response Code: "$RESPONSE_CODE
+
+    if [ "$RESPONSE_CODE" -ne "200" ]; then
+    	echo "Bad Response Code"
+    	exit 1
+    fi
+
+    echo "----------------------------------------------"
+    echo "Test Complete"
+    echo "----------------------------------------------"
+    ```
+
+    Please notice the url about mid file. Replace this with the url to your production app that we pushed to prod in Lab 4
+  * **Very Important:** We need to set the bash script as executable, before we check it in. (I marked this as very important, because I forgot to do it while writing these steps)
+    * At the command line, in the ```lab/ci/scripts``` directory, execute:
+
+      ```
+      chmod +x test-api.sh
+      ```
+
+1. Create the pipeline for the test and slack notifications
+  * Using your IDE or a command line editor, create a new file named ```continuous-testing.yml``` in your ```lab/ci``` directory.
+  * Add the following to the ```continuous-testing.yml``` file in ```lab/ci```:
+
+    ```
+    resource_types:
+      - name: slack-notification
+        type: docker-image
+        source:
+          repository: cfcommunity/slack-notification-resource
+          tag: latest
+
+    resources:
+      - name: git-repo
+        type: git
+        source:
+          uri: {{git-repo}}
+          branch: {{git-repo-branch}}
+
+      - name: 1m
+        type: time
+        source: {interval: 1m}
+
+      - name: slack-devs
+        type: slack-notification
+        source:
+          url: {{slack-webhook}}
+
+    jobs:
+      - name: test-every-1m
+        plan:
+          - get: 1m
+            trigger: true
+          - get: git-repo
+          - task: test-api
+            file: git-repo/ci/tasks/test-api.yml
+            on_failure:
+              put: slack-devs
+              params:
+                text: <!here> continuous testing job failed
+                channel: "#testing"
+                username: concourse
+                icon_url: https://avatars1.githubusercontent.com/u/7809479?v=3&s=200
+                task: slack-alert
+    ```
+
+  * You will notice a resource type which is how we are defining the Slack 3rd-party resource we are using
+  * We are also using a time type resource which allows us to trigger jobs at a set interval. For this exercise, we are running our test every minute to check if our production api is available
+  * We are using an *on_failure* condition of the *test-api* task to trigger the slack notification
+
+1. Update the credential file
+  * We could create a new credential file for this pipeline, but let's just reuse our ```concourse-config.yml``` file.  
+  * Follow the instructions [here](https://my.slack.com/services/new/incoming-webhook/) to create an incoming webhook for your Slack testing channel. Please copy the *Webhook Url* and add to the last line of your configuration file:
+
+    ```
+    git-repo: [URI-OF-GITHUB-REPO]
+    git-repo-branch: master
+    git-repo-ssh-address: [SSH-ADDRESS-OF-GITHUB-REPO]
+    git-user-email: [PUT-GITHUB-EMAIL-HERE]
+    git-ssh-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      YOUR
+      MULTILINE
+      GITHUB
+      SSH
+      KEY
+      HERE
+      -----END RSA PRIVATE KEY-----
+    git-user: [GITHUB-USER-NAME]
+    git-repo-name: [GITHUB-REPO-NAME]
+    git-access-token: [CREATE-A-GITHUB-ACCESS-TOKEN-AND-ADD-HERE]
+    cf-api: [PCF-API endpoint]
+    cf-username: [PCF CI username]
+    cf-password: [PCF CI password]
+    cf-org: [CLOUD-FOUNDRY-ORG]
+    cf-dev-space: [CLOUD-FOUNDRY-DEV-SPACE-NAME]
+    cf-stage-space: [CLOUD-FOUNDRY-STAGE-SPACE-NAME]
+    cf-prod-space: [CLOUD-FOUNDRY-PROD-SPACE-NAME]
+    slack-webhook: https://hooks.slack.com/services/something/something/something
+    ```
+
+1. Check in our files
+  * Since Concourse will be pulling our tasks and scripts from the git-repo, we need to check everything in
+  * At the root of your *lab* application, execute a ```git status``` to ensure our *concourse-config.yml* is not in the files that will be added. Move it to a higher directory if necessary.
+  * Again, in the root of your *lab* application, execute the following commands to push your work:
+
+    ```
+    git add .
+    ```
+
+    On Windows, we need to ensure that the executable bit is flipped on a few of our files:
+    ```
+    git update-index --chmod=+x ci/scripts/test-api.sh
+    ```
+
+    On either operating system, complete the following steps:
+
+    ```
+    git commit -m "Added continuous testing pipeline."
+    git push origin master
+    ```
+
+1. Push your pipeline to Concourse
+  * At your command line, navigate to the root of your *lab* application. Use the fly command to push your app
+
+    ```
+    fly -t ci set-pipeline -p [name of the pipeline] -c [path to pipeline file] -l [path to credential file]
+    ```
+
+    i.e.
+
+    ```
+    fly -t ci set-pipeline -p continuous-testing -c ./ci/continuous-testing.yml -l ../concourse-config.yml
+    ```
+
+  * You will get prompted to *apply configuration*. Type *y*
+
+1. Navigate in your browser to Concourse and notice that you now have 2 pipelines.
+  * Watch the pipeline execute every minute.
+  * Login to the Pivotal Cloud Foundry Apps Manager with your ci username and password
+  * In the production space, stop your application and wait for the pipeline to fail
+  * Check your Slack, testing, channel to see your notification that something is amiss
+  * **Congratulations**, you now have the means to continuously test
