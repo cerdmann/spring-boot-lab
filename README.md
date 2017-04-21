@@ -466,7 +466,7 @@
 1. Create a credential file
   * We do not want this file checked into source control. This first version will not contain any sensitive information, however it will eventually contain ssh keys, api keys, and passwords.
   * Create a file outside of your *lab* application root. We need to provide values for the placeholders in the above ```pipeline.yml```. Name this file: ```concourse-config.yml```
-  * Add the following to ```pipeline.yml```; making sure to replace the bracketed text with your repository's https URI:
+  * Add the following to ```concourse-config.yml```; making sure to replace the bracketed text with your repository's https URI:
 
     ```
     git-repo: [URI-OF-GITHUB-REPO]
